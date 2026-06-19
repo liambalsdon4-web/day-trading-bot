@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Day Trading Bot</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Day Trading Bot</h1>
+    <div id="status-bar">
+      <span id="mode-badge" class="badge">PAPER</span>
+      <span id="bot-status" class="badge grey">STOPPED</span>
+      <span id="market-status" class="badge grey">MARKET CLOSED</span>
+      <span id="last-tick">Last tick: —</span>
+      <div class="header-actions">
+        <button id="btn-start" onclick="startBot()">Start</button>
+        <button id="btn-stop" onclick="stopBot()">Stop</button>
+        <button id="btn-tick" onclick="manualTick()">Tick Now</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Portfolio Summary -->
+    <section id="portfolio-section">
+      <h2>Portfolio</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="card-label">Total Value</div>
+          <div class="card-value" id="total-value">$—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Cash</div>
+          <div class="card-value" id="cash">$—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Day P&L</div>
+          <div class="card-value" id="day-pnl">$—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total P&L</div>
+          <div class="card-value" id="total-pnl">$—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Positions</div>
+          <div class="card-value" id="positions-count">0 / 5</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Daily Loss Used</div>
+          <div class="card-value" id="daily-loss">0%</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Open Positions -->
+    <section id="positions-section">
+      <h2>Open Positions</h2>
+      <div id="positions-empty" class="empty-msg">No open positions</div>
+      <table id="positions-table" class="hidden">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Type</th>
+            <th>Qty</th>
+            <th>Entry</th>
+            <th>Current</th>
+            <th>Stop Loss</th>
+            <th>Take Profit</th>
+            <th>Unrealised P&L</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="positions-body"></tbody>
+      </table>
+    </section>
+
+    <!-- Signals -->
+    <section id="signals-section">
+      <h2>Live Signals</h2>
+      <div id="signals-empty" class="empty-msg">Waiting for first tick...</div>
+      <div id="signals-grid"></div>
+    </section>
+
+    <!-- Errors -->
+    <section id="errors-section" class="hidden">
+      <h2>Errors</h2>
+      <ul id="errors-list"></ul>
+    </section>
+
+    <!-- Trade History -->
+    <section id="trades-section">
+      <h2>Trade History</h2>
+      <div id="trades-empty" class="empty-msg">No trades yet</div>
+      <table id="trades-table" class="hidden">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Symbol</th>
+            <th>Side</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Value</th>
+            <th>Exit</th>
+            <th>P&L</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="trades-body"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

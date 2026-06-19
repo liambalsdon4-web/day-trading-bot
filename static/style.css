@@ -1,0 +1,167 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  min-height: 100vh;
+}
+
+header {
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+header h1 { font-size: 1.1rem; font-weight: 600; }
+
+#status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.badge {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badge.paper   { background: #1f6feb; color: #fff; }
+.badge.live    { background: #da3633; color: #fff; }
+.badge.green   { background: #238636; color: #fff; }
+.badge.grey    { background: #30363d; color: #8b949e; }
+.badge.orange  { background: #9e6a03; color: #fff; }
+
+#last-tick { font-size: 0.78rem; color: #8b949e; margin-left: auto; }
+
+.header-actions { display: flex; gap: 8px; }
+
+button {
+  padding: 5px 14px;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: #21262d;
+  color: #e6edf3;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: background 0.15s;
+}
+button:hover { background: #30363d; }
+
+main { padding: 20px 24px; display: flex; flex-direction: column; gap: 24px; }
+
+section h2 { font-size: 0.9rem; font-weight: 600; color: #8b949e; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.card-label { font-size: 0.72rem; color: #8b949e; margin-bottom: 6px; }
+.card-value { font-size: 1.3rem; font-weight: 700; }
+.pos { color: #3fb950; }
+.neg { color: #f85149; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+th {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid #30363d;
+  color: #8b949e;
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #21262d;
+}
+
+tr:hover td { background: #161b22; }
+
+.empty-msg { color: #8b949e; font-size: 0.88rem; padding: 16px 0; }
+
+.hidden { display: none; }
+
+/* Signals grid */
+#signals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.signal-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.signal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.signal-symbol { font-weight: 700; font-size: 1rem; }
+.signal-action {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+.signal-action.BUY  { background: #238636; color: #fff; }
+.signal-action.SELL { background: #da3633; color: #fff; }
+.signal-action.HOLD { background: #30363d; color: #8b949e; }
+
+.score-bar-wrap { height: 8px; background: #30363d; border-radius: 4px; margin-bottom: 8px; overflow: hidden; }
+.score-bar { height: 100%; border-radius: 4px; }
+.score-bar.bull { background: #3fb950; }
+.score-bar.bear { background: #f85149; }
+
+.signal-meta { font-size: 0.72rem; color: #8b949e; }
+
+.votes { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+.vote-row { display: flex; justify-content: space-between; font-size: 0.72rem; }
+.vote-bull { color: #3fb950; }
+.vote-bear { color: #f85149; }
+.vote-neutral { color: #8b949e; }
+
+#errors-section { background: #1c1010; border: 1px solid #6d2828; border-radius: 8px; padding: 14px 16px; }
+#errors-list { list-style: none; font-size: 0.78rem; color: #f85149; display: flex; flex-direction: column; gap: 4px; }
+
+.side-buy  { color: #3fb950; font-weight: 600; }
+.side-sell { color: #f85149; font-weight: 600; }
+
+.close-btn {
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  background: #da3633;
+  border-color: #da3633;
+  color: #fff;
+}
+.close-btn:hover { background: #b31d1a; }
