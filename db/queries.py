@@ -88,6 +88,37 @@ async def get_portfolio_history(days: int = 30) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+async def get_last_portfolio_snapshot() -> dict | None:
+    async with aiosqlite.connect(settings.db_path) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM portfolio_snapshots ORDER BY date DESC LIMIT 1"
+        ) as cursor:
+            row = await cursor.fetchone()
+    return dict(row) if row else None
+
+
+async def get_open_trades() -> list[Trade]:
+    async with aiosqlite.connect(settings.db_path) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """SELECT * FROM trades
+               WHERE side = 'BUY' AND closed_at IS NULL AND exit_price IS NULL
+               ORDER BY timestamp ASC"""
+        ) as cursor:
+            rows = await cursor.fetchall()
+    return [
+        Trade(
+            id=r["id"], symbol=r["symbol"], asset_class=r["asset_class"],
+            side=r["side"], qty=r["qty"], price=r["price"],
+            total_value=r["total_value"], mode=r["mode"],
+            signal_score=r["signal_score"] or 0.0,
+            timestamp=datetime.fromisoformat(r["timestamp"]),
+        )
+        for r in rows
+    ]
+
+
 async def get_daily_summary(date_str: str) -> dict:
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row

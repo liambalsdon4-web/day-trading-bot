@@ -64,6 +64,32 @@ class TradingEngine:
             errors=self.errors[-10:],
         )
 
+    async def restore_state(self) -> None:
+        snapshot = await queries.get_last_portfolio_snapshot()
+        open_trades = await queries.get_open_trades()
+
+        if snapshot:
+            self.portfolio.cash = snapshot["cash"]
+            self.portfolio.total_value = snapshot["total_value"]
+        elif open_trades:
+            self.portfolio.cash = self.portfolio.starting_capital - sum(t.total_value for t in open_trades)
+            self.portfolio.total_value = self.portfolio.cash + sum(t.total_value for t in open_trades)
+
+        self.portfolio.total_pnl = self.portfolio.total_value - self.portfolio.starting_capital
+        self.portfolio.total_pnl_pct = self.portfolio.total_pnl / self.portfolio.starting_capital
+        self._day_open_value = self.portfolio.total_value
+
+        for trade in open_trades:
+            position = Position(
+                symbol=trade.symbol, asset_class=trade.asset_class,
+                qty=trade.qty, entry_price=trade.price, current_price=trade.price,
+                stop_loss_price=risk_manager.calc_stop_loss(trade.price),
+                take_profit_price=risk_manager.calc_take_profit(trade.price),
+                unrealized_pnl=0.0, unrealized_pnl_pct=0.0,
+                opened_at=trade.timestamp,
+            )
+            self.portfolio.positions.append(position)
+
     async def start(self) -> None:
         self.running = True
         self._task = asyncio.create_task(self._loop())

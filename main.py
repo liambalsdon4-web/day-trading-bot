@@ -56,6 +56,7 @@ async def lifespan(app: FastAPI):
     feed_task = asyncio.create_task(feed.start(all_symbols))
     # Small delay so the feed gets at least one data pull before first tick
     await asyncio.sleep(5)
+    await engine.restore_state()
     await engine.start()
 
     yield
