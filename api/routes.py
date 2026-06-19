@@ -1,6 +1,6 @@
 from __future__ import annotations
 from fastapi import APIRouter, Request, HTTPException
-from api.models import DashboardResponse, BotStatus, Portfolio, SignalScore, Trade
+from api.models import DashboardResponse, BotStatus, Portfolio, SignalScore, Trade, DailySummary
 from db import queries
 
 router = APIRouter(prefix="/api")
@@ -67,6 +67,17 @@ async def history(days: int = 30):
     return await queries.get_portfolio_history(days=days)
 
 
+@router.get("/summary/daily", response_model=DailySummary)
+async def daily_summary_today():
+    from datetime import date as _date
+    return await queries.get_daily_summary(_date.today().isoformat())
+
+
+@router.get("/summary/daily/{date_str}", response_model=DailySummary)
+async def daily_summary_by_date(date_str: str):
+    return await queries.get_daily_summary(date_str)
+
+
 @router.post("/bot/start")
 async def bot_start(request: Request):
     eng = _engine(request)
@@ -115,6 +126,7 @@ async def config_view(request: Request):
         "daily_loss_limit_pct": settings.daily_loss_limit_pct,
         "buy_threshold": settings.buy_threshold,
         "sell_threshold": settings.sell_threshold,
+        "max_position_hours": settings.max_position_hours,
         "has_alpaca_key": bool(settings.alpaca_api_key),
         "has_binance_key": bool(settings.binance_api_key),
     }

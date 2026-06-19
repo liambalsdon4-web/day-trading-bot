@@ -1,4 +1,5 @@
 const POLL_MS = 5000;
+let maxPositionHours = 4;
 
 async function api(path, method = "GET") {
   const res = await fetch("/api" + path, { method });
@@ -23,6 +24,21 @@ function fmtPct(n) {
 
 function colourClass(n) {
   return n > 0 ? "pos" : n < 0 ? "neg" : "";
+}
+
+function fmtDuration(openedAt) {
+  const mins = Math.floor((Date.now() - new Date(openedAt).getTime()) / 60000);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function timeColourClass(openedAt) {
+  const hours = (Date.now() - new Date(openedAt).getTime()) / 3600000;
+  const pct = hours / maxPositionHours;
+  if (pct >= 0.9) return "time-danger";
+  if (pct >= 0.65) return "time-warn";
+  return "";
 }
 
 function renderPortfolio(p) {
@@ -66,8 +82,8 @@ function renderPositions(positions) {
       </div>
       <div class="pos-grid">
         <div class="pos-field">
-          <div class="pos-field-label">Qty</div>
-          <div class="pos-field-value">${fmt(p.qty, 6)}</div>
+          <div class="pos-field-label">Stake</div>
+          <div class="pos-field-value">${fmtMoney(p.qty * p.entry_price)}</div>
         </div>
         <div class="pos-field">
           <div class="pos-field-label">Entry</div>
@@ -76,6 +92,14 @@ function renderPositions(positions) {
         <div class="pos-field">
           <div class="pos-field-label">Current</div>
           <div class="pos-field-value">${fmtMoney(p.current_price)}</div>
+        </div>
+        <div class="pos-field">
+          <div class="pos-field-label">Qty</div>
+          <div class="pos-field-value">${fmt(p.qty, 6)}</div>
+        </div>
+        <div class="pos-field">
+          <div class="pos-field-label">Time Open</div>
+          <div class="pos-field-value ${timeColourClass(p.opened_at)}">${fmtDuration(p.opened_at)} / ${maxPositionHours}h</div>
         </div>
       </div>
       <div class="pos-levels">
@@ -234,5 +258,6 @@ async function closePosition(symbol) {
   poll();
 }
 
+api("/config").then(cfg => { if (cfg.max_position_hours) maxPositionHours = cfg.max_position_hours; }).catch(() => {});
 poll();
 setInterval(poll, POLL_MS);

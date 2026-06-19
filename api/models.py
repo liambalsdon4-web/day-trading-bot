@@ -84,3 +84,20 @@ class DashboardResponse(BaseModel):
     portfolio: Portfolio
     recent_signals: list[SignalScore]
     recent_trades: list[Trade]
+
+
+class DailySummary(BaseModel):
+    date: str
+    total_trades: int
+    winning_trades: int
+    losing_trades: int
+    win_rate: float
+    avg_win: float
+    avg_loss: float
+    risk_reward_ratio: float
+    total_realized_pnl: float
+    max_drawdown: float
+    best_trade_symbol: Optional[str] = None
+    best_trade_pnl: Optional[float] = None
+    worst_trade_symbol: Optional[str] = None
+    worst_trade_pnl: Optional[float] = None

@@ -34,7 +34,8 @@ class Settings(BaseSettings):
     max_positions: int = 5
     risk_per_trade_pct: float = 0.01
     stop_loss_pct: float = 0.02
-    take_profit_pct: float = 0.04
+    take_profit_pct: float = 0.02
+    max_position_hours: float = 4.0
     daily_loss_limit_pct: float = 0.02
 
     # ── Signal thresholds ─────────────────────────────────────────────

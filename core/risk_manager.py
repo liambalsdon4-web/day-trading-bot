@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime, timezone
 from api.models import Portfolio, Position, SignalScore
 from config.settings import settings
 
@@ -39,4 +40,12 @@ def check_exit(position: Position, signal: SignalScore, current_price: float) ->
         return "TAKE_PROFIT"
     if signal.action == "SELL" and signal.confidence >= 0.4:
         return "SIGNAL_REVERSAL"
+    hours_held = (datetime.now(timezone.utc) - position.opened_at).total_seconds() / 3600
+    if hours_held >= settings.max_position_hours:
+        pnl_pct = position.unrealized_pnl_pct
+        if pnl_pct > 0:
+            return "TIME_EXIT_PROFIT"
+        if pnl_pct >= -0.01:
+            return "TIME_EXIT_BREAKEVEN"
+        # Significantly negative — let stop loss handle it
     return None

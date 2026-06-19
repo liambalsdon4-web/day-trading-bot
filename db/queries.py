@@ -86,3 +86,62 @@ async def get_portfolio_history(days: int = 30) -> list[dict]:
         ) as cursor:
             rows = await cursor.fetchall()
     return [dict(r) for r in rows]
+
+
+async def get_daily_summary(date_str: str) -> dict:
+    async with aiosqlite.connect(settings.db_path) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """SELECT symbol, realized_pnl FROM trades
+               WHERE DATE(closed_at) = ? AND realized_pnl IS NOT NULL
+               ORDER BY closed_at ASC""",
+            (date_str,),
+        ) as cursor:
+            rows = await cursor.fetchall()
+
+    empty = {
+        "date": date_str, "total_trades": 0, "winning_trades": 0,
+        "losing_trades": 0, "win_rate": 0.0, "avg_win": 0.0, "avg_loss": 0.0,
+        "risk_reward_ratio": 0.0, "total_realized_pnl": 0.0, "max_drawdown": 0.0,
+        "best_trade_symbol": None, "best_trade_pnl": None,
+        "worst_trade_symbol": None, "worst_trade_pnl": None,
+    }
+    if not rows:
+        return empty
+
+    pnls = [(r["symbol"], r["realized_pnl"]) for r in rows]
+    wins = [(s, p) for s, p in pnls if p > 0]
+    losses = [(s, p) for s, p in pnls if p < 0]
+
+    avg_win = sum(p for _, p in wins) / len(wins) if wins else 0.0
+    avg_loss = sum(p for _, p in losses) / len(losses) if losses else 0.0
+
+    # Max drawdown from running cumulative PnL during the day
+    peak = running = max_dd = 0.0
+    for _, p in pnls:
+        running += p
+        if running > peak:
+            peak = running
+        dd = peak - running
+        if dd > max_dd:
+            max_dd = dd
+
+    best = max(pnls, key=lambda x: x[1])
+    worst = min(pnls, key=lambda x: x[1])
+
+    return {
+        "date": date_str,
+        "total_trades": len(pnls),
+        "winning_trades": len(wins),
+        "losing_trades": len(losses),
+        "win_rate": len(wins) / len(pnls),
+        "avg_win": avg_win,
+        "avg_loss": avg_loss,
+        "risk_reward_ratio": avg_win / abs(avg_loss) if avg_loss != 0 else 0.0,
+        "total_realized_pnl": sum(p for _, p in pnls),
+        "max_drawdown": max_dd,
+        "best_trade_symbol": best[0],
+        "best_trade_pnl": best[1],
+        "worst_trade_symbol": worst[0],
+        "worst_trade_pnl": worst[1],
+    }
