@@ -1,5 +1,4 @@
 const POLL_MS = 5000;
-let pollTimer = null;
 
 async function api(path, method = "GET") {
   const res = await fetch("/api" + path, { method });
@@ -19,8 +18,7 @@ function fmtMoney(n) {
 
 function fmtPct(n) {
   if (n == null) return "—";
-  const pct = (n * 100).toFixed(2);
-  return (n >= 0 ? "+" : "") + pct + "%";
+  return (n >= 0 ? "+" : "") + (n * 100).toFixed(2) + "%";
 }
 
 function colourClass(n) {
@@ -30,43 +28,68 @@ function colourClass(n) {
 function renderPortfolio(p) {
   const dayPnl = document.getElementById("day-pnl");
   dayPnl.textContent = fmtMoney(p.day_pnl) + " (" + fmtPct(p.day_pnl_pct) + ")";
-  dayPnl.className = "card-value " + colourClass(p.day_pnl);
+  dayPnl.className = "stat-value mono " + colourClass(p.day_pnl);
 
   const totalPnl = document.getElementById("total-pnl");
   totalPnl.textContent = fmtMoney(p.total_pnl) + " (" + fmtPct(p.total_pnl_pct) + ")";
-  totalPnl.className = "card-value " + colourClass(p.total_pnl);
+  totalPnl.className = "stat-value mono " + colourClass(p.total_pnl);
 
   document.getElementById("total-value").textContent = fmtMoney(p.total_value);
   document.getElementById("cash").textContent = fmtMoney(p.cash);
   document.getElementById("positions-count").textContent = `${p.positions.length} / ${p.max_positions}`;
-  document.getElementById("daily-loss").textContent = fmt(p.daily_loss_used_pct * 100, 2) + "% / " + fmt(p.daily_loss_limit_pct * 100, 2) + "%";
+  document.getElementById("daily-loss").textContent =
+    fmt(p.daily_loss_used_pct * 100, 2) + "% / " + fmt(p.daily_loss_limit_pct * 100, 2) + "%";
 }
 
 function renderPositions(positions) {
   const empty = document.getElementById("positions-empty");
-  const table = document.getElementById("positions-table");
-  const tbody = document.getElementById("positions-body");
+  const cards = document.getElementById("positions-cards");
 
   if (!positions.length) {
     empty.classList.remove("hidden");
-    table.classList.add("hidden");
+    cards.innerHTML = "";
     return;
   }
   empty.classList.add("hidden");
-  table.classList.remove("hidden");
 
-  tbody.innerHTML = positions.map(p => `
-    <tr>
-      <td><strong>${p.symbol}</strong></td>
-      <td>${p.asset_class}</td>
-      <td>${fmt(p.qty, 6)}</td>
-      <td>${fmtMoney(p.entry_price)}</td>
-      <td>${fmtMoney(p.current_price)}</td>
-      <td class="neg">${fmtMoney(p.stop_loss_price)}</td>
-      <td class="pos">${fmtMoney(p.take_profit_price)}</td>
-      <td class="${colourClass(p.unrealized_pnl)}">${fmtMoney(p.unrealized_pnl)} (${fmtPct(p.unrealized_pnl_pct)})</td>
-      <td><button class="close-btn" onclick="closePosition('${p.symbol}')">Close</button></td>
-    </tr>
+  cards.innerHTML = positions.map(p => `
+    <div class="pos-card">
+      <div class="pos-card-header">
+        <div>
+          <div class="pos-symbol">${p.symbol}</div>
+          <div class="pos-type">${p.asset_class}</div>
+        </div>
+        <div class="pos-pnl">
+          <div class="pos-pnl-value ${colourClass(p.unrealized_pnl)}">${fmtMoney(p.unrealized_pnl)}</div>
+          <div class="pos-pnl-pct ${colourClass(p.unrealized_pnl)}">${fmtPct(p.unrealized_pnl_pct)}</div>
+        </div>
+      </div>
+      <div class="pos-grid">
+        <div class="pos-field">
+          <div class="pos-field-label">Qty</div>
+          <div class="pos-field-value">${fmt(p.qty, 6)}</div>
+        </div>
+        <div class="pos-field">
+          <div class="pos-field-label">Entry</div>
+          <div class="pos-field-value">${fmtMoney(p.entry_price)}</div>
+        </div>
+        <div class="pos-field">
+          <div class="pos-field-label">Current</div>
+          <div class="pos-field-value">${fmtMoney(p.current_price)}</div>
+        </div>
+      </div>
+      <div class="pos-levels">
+        <div class="level-bar stop">
+          <div class="level-bar-label">Stop Loss</div>
+          <div class="level-bar-val">${fmtMoney(p.stop_loss_price)}</div>
+        </div>
+        <div class="level-bar tp">
+          <div class="level-bar-label">Take Profit</div>
+          <div class="level-bar-val">${fmtMoney(p.take_profit_price)}</div>
+        </div>
+      </div>
+      <button class="close-btn" onclick="closePosition('${p.symbol}')">Close Position</button>
+    </div>
   `).join("");
 }
 
@@ -84,21 +107,32 @@ function renderSignals(signals) {
   grid.innerHTML = signals.map(s => {
     const bullW = Math.max(0, Math.min(100, s.bull_score));
     const bearW = Math.max(0, Math.min(100, s.bear_score));
+    const cls = s.action === "BUY" ? "sig-buy" : s.action === "SELL" ? "sig-sell" : "sig-hold";
+
     const votesHtml = s.votes.map(v => `
       <div class="vote-row">
-        <span class="vote-${v.vote}">${v.indicator}</span>
-        <span class="vote-${v.vote}">${v.vote.toUpperCase()} – ${v.reason}</span>
+        <span class="vote-indicator">${v.indicator}</span>
+        <span class="vote-${v.vote}">${v.vote.toUpperCase()} — ${v.reason}</span>
       </div>
     `).join("");
+
     return `
-      <div class="signal-card">
+      <div class="signal-card ${cls}">
         <div class="signal-header">
           <span class="signal-symbol">${s.symbol}</span>
-          <span class="signal-action ${s.action}">${s.action}</span>
+          <span class="signal-badge ${s.action}">${s.action}</span>
         </div>
-        <div class="score-bar-wrap"><div class="score-bar bull" style="width:${bullW}%"></div></div>
-        <div class="score-bar-wrap"><div class="score-bar bear" style="width:${bearW}%"></div></div>
-        <div class="signal-meta">Net: ${s.net_score > 0 ? "+" : ""}${s.net_score} &bull; Conf: ${(s.confidence * 100).toFixed(0)}%</div>
+        <div class="score-bars">
+          <div class="score-bar-row">
+            <span class="score-bar-label">Bull</span>
+            <div class="score-bar-track"><div class="score-bar-fill bull" style="width:${bullW}%"></div></div>
+          </div>
+          <div class="score-bar-row">
+            <span class="score-bar-label">Bear</span>
+            <div class="score-bar-track"><div class="score-bar-fill bear" style="width:${bearW}%"></div></div>
+          </div>
+        </div>
+        <div class="signal-meta">Net ${s.net_score > 0 ? "+" : ""}${s.net_score} &middot; Confidence ${(s.confidence * 100).toFixed(0)}%</div>
         <div class="votes">${votesHtml}</div>
       </div>
     `;
@@ -107,48 +141,48 @@ function renderSignals(signals) {
 
 function renderTrades(trades) {
   const empty = document.getElementById("trades-empty");
-  const table = document.getElementById("trades-table");
+  const wrap = document.getElementById("trades-table-wrap");
   const tbody = document.getElementById("trades-body");
 
   if (!trades.length) {
     empty.classList.remove("hidden");
-    table.classList.add("hidden");
+    wrap.classList.add("hidden");
     return;
   }
   empty.classList.add("hidden");
-  table.classList.remove("hidden");
+  wrap.classList.remove("hidden");
 
   tbody.innerHTML = trades.map(t => `
     <tr>
-      <td>${new Date(t.timestamp).toLocaleString()}</td>
-      <td>${t.symbol}</td>
+      <td class="time-cell">${new Date(t.timestamp).toLocaleString()}</td>
+      <td class="symbol-cell">${t.symbol}</td>
       <td class="${t.side === "BUY" ? "side-buy" : "side-sell"}">${t.side}</td>
       <td>${fmt(t.qty, 4)}</td>
       <td>${fmtMoney(t.price)}</td>
-      <td>${fmtMoney(t.total_value)}</td>
       <td>${t.exit_price != null ? fmtMoney(t.exit_price) : "—"}</td>
+      <td>${fmtMoney(t.total_value)}</td>
       <td class="${t.realized_pnl != null ? colourClass(t.realized_pnl) : ""}">${t.realized_pnl != null ? fmtMoney(t.realized_pnl) : "—"}</td>
-      <td>${t.signal_score != null ? (t.signal_score > 0 ? "+" : "") + fmt(t.signal_score, 1) : "—"}</td>
+      <td class="${t.signal_score != null ? colourClass(t.signal_score) : ""}">${t.signal_score != null ? (t.signal_score > 0 ? "+" : "") + fmt(t.signal_score, 1) : "—"}</td>
     </tr>
   `).join("");
 }
 
 function renderStatus(s) {
-  const modeBadge = document.getElementById("mode-badge");
-  modeBadge.textContent = s.mode.toUpperCase();
-  modeBadge.className = "badge " + s.mode;
+  const modePill = document.getElementById("mode-pill");
+  document.getElementById("mode-badge").textContent = s.mode.toUpperCase();
+  modePill.className = "pill " + s.mode;
 
-  const botBadge = document.getElementById("bot-status");
-  botBadge.textContent = s.running ? "RUNNING" : "STOPPED";
-  botBadge.className = "badge " + (s.running ? "green" : "grey");
+  const botPill = document.getElementById("bot-pill");
+  document.getElementById("bot-status").textContent = s.running ? "RUNNING" : "STOPPED";
+  botPill.className = "pill " + (s.running ? "running" : "stopped");
 
-  const mktBadge = document.getElementById("market-status");
-  mktBadge.textContent = s.market_open ? "MARKET OPEN" : "MARKET CLOSED";
-  mktBadge.className = "badge " + (s.market_open ? "green" : "orange");
+  const mktPill = document.getElementById("market-pill");
+  document.getElementById("market-status").textContent = s.market_open ? "MARKET OPEN" : "MARKET CLOSED";
+  mktPill.className = "pill " + (s.market_open ? "open" : "closed");
 
   document.getElementById("last-tick").textContent = s.last_tick_at
-    ? "Last tick: " + new Date(s.last_tick_at).toLocaleTimeString()
-    : "Last tick: —";
+    ? new Date(s.last_tick_at).toLocaleTimeString()
+    : "—";
 
   const errSection = document.getElementById("errors-section");
   const errList = document.getElementById("errors-list");
@@ -184,12 +218,13 @@ async function stopBot() {
 }
 
 async function manualTick() {
-  document.getElementById("btn-tick").textContent = "Ticking...";
+  const btn = document.getElementById("btn-tick");
+  btn.textContent = "Ticking…";
   try {
     await api("/bot/tick", "POST");
     await poll();
   } finally {
-    document.getElementById("btn-tick").textContent = "Tick Now";
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Tick`;
   }
 }
 
@@ -200,4 +235,4 @@ async function closePosition(symbol) {
 }
 
 poll();
-pollTimer = setInterval(poll, POLL_MS);
+setInterval(poll, POLL_MS);

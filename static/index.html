@@ -3,112 +3,167 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Day Trading Bot</title>
+  <title>Trading Bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
+  <div class="bg-grid"></div>
+
   <header>
-    <h1>Day Trading Bot</h1>
-    <div id="status-bar">
-      <span id="mode-badge" class="badge">PAPER</span>
-      <span id="bot-status" class="badge grey">STOPPED</span>
-      <span id="market-status" class="badge grey">MARKET CLOSED</span>
-      <span id="last-tick">Last tick: —</span>
-      <div class="header-actions">
-        <button id="btn-start" onclick="startBot()">Start</button>
-        <button id="btn-stop" onclick="stopBot()">Stop</button>
-        <button id="btn-tick" onclick="manualTick()">Tick Now</button>
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+            <polyline points="16 7 22 7 22 13"></polyline>
+          </svg>
+        </div>
+        <span class="logo-text">TradingBot</span>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="status-pills">
+        <div class="pill" id="mode-pill">
+          <div class="pill-dot"></div>
+          <span id="mode-badge">PAPER</span>
+        </div>
+        <div class="pill" id="bot-pill">
+          <div class="pill-dot pulse"></div>
+          <span id="bot-status">STOPPED</span>
+        </div>
+        <div class="pill" id="market-pill">
+          <div class="pill-dot"></div>
+          <span id="market-status">MARKET CLOSED</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <span id="last-tick">—</span>
+      <div class="btn-group">
+        <button id="btn-start" class="btn btn-success" onclick="startBot()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Start
+        </button>
+        <button id="btn-stop" class="btn btn-danger" onclick="stopBot()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+          Stop
+        </button>
+        <button id="btn-tick" class="btn btn-ghost" onclick="manualTick()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Tick
+        </button>
       </div>
     </div>
   </header>
 
   <main>
-    <!-- Portfolio Summary -->
-    <section id="portfolio-section">
-      <h2>Portfolio</h2>
-      <div class="cards">
-        <div class="card">
-          <div class="card-label">Total Value</div>
-          <div class="card-value" id="total-value">$—</div>
+    <!-- Portfolio -->
+    <section>
+      <div class="section-header">
+        <h2>Portfolio</h2>
+        <div class="section-line"></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card accent">
+          <div class="stat-label">Total Value</div>
+          <div class="stat-value mono" id="total-value">$—</div>
         </div>
-        <div class="card">
-          <div class="card-label">Cash</div>
-          <div class="card-value" id="cash">$—</div>
+        <div class="stat-card">
+          <div class="stat-label">Cash Available</div>
+          <div class="stat-value mono" id="cash">$—</div>
         </div>
-        <div class="card">
-          <div class="card-label">Day P&L</div>
-          <div class="card-value" id="day-pnl">$—</div>
+        <div class="stat-card">
+          <div class="stat-label">Day P&amp;L</div>
+          <div class="stat-value mono" id="day-pnl">$—</div>
         </div>
-        <div class="card">
-          <div class="card-label">Total P&L</div>
-          <div class="card-value" id="total-pnl">$—</div>
+        <div class="stat-card">
+          <div class="stat-label">Total P&amp;L</div>
+          <div class="stat-value mono" id="total-pnl">$—</div>
         </div>
-        <div class="card">
-          <div class="card-label">Positions</div>
-          <div class="card-value" id="positions-count">0 / 5</div>
+        <div class="stat-card">
+          <div class="stat-label">Positions</div>
+          <div class="stat-value mono" id="positions-count">0 / 5</div>
         </div>
-        <div class="card">
-          <div class="card-label">Daily Loss Used</div>
-          <div class="card-value" id="daily-loss">0%</div>
+        <div class="stat-card">
+          <div class="stat-label">Daily Loss Used</div>
+          <div class="stat-value mono" id="daily-loss">0%</div>
         </div>
       </div>
     </section>
 
-    <!-- Open Positions -->
-    <section id="positions-section">
-      <h2>Open Positions</h2>
-      <div id="positions-empty" class="empty-msg">No open positions</div>
-      <table id="positions-table" class="hidden">
-        <thead>
-          <tr>
-            <th>Symbol</th>
-            <th>Type</th>
-            <th>Qty</th>
-            <th>Entry</th>
-            <th>Current</th>
-            <th>Stop Loss</th>
-            <th>Take Profit</th>
-            <th>Unrealised P&L</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="positions-body"></tbody>
-      </table>
-    </section>
+    <!-- Signals + Positions side by side -->
+    <div class="two-col">
+      <!-- Live Signals -->
+      <section>
+        <div class="section-header">
+          <h2>Live Signals</h2>
+          <div class="section-line"></div>
+        </div>
+        <div id="signals-empty" class="empty-state">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Waiting for first tick…</span>
+        </div>
+        <div id="signals-grid"></div>
+      </section>
 
-    <!-- Signals -->
-    <section id="signals-section">
-      <h2>Live Signals</h2>
-      <div id="signals-empty" class="empty-msg">Waiting for first tick...</div>
-      <div id="signals-grid"></div>
-    </section>
+      <!-- Open Positions -->
+      <section>
+        <div class="section-header">
+          <h2>Open Positions</h2>
+          <div class="section-line"></div>
+        </div>
+        <div id="positions-empty" class="empty-state">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span>No open positions</span>
+        </div>
+        <div id="positions-cards"></div>
+      </section>
+    </div>
 
     <!-- Errors -->
     <section id="errors-section" class="hidden">
-      <h2>Errors</h2>
-      <ul id="errors-list"></ul>
+      <div class="section-header">
+        <h2>Errors</h2>
+        <div class="section-line"></div>
+      </div>
+      <div class="error-box">
+        <ul id="errors-list"></ul>
+      </div>
     </section>
 
     <!-- Trade History -->
-    <section id="trades-section">
-      <h2>Trade History</h2>
-      <div id="trades-empty" class="empty-msg">No trades yet</div>
-      <table id="trades-table" class="hidden">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Symbol</th>
-            <th>Side</th>
-            <th>Qty</th>
-            <th>Price</th>
-            <th>Value</th>
-            <th>Exit</th>
-            <th>P&L</th>
-            <th>Score</th>
-          </tr>
-        </thead>
-        <tbody id="trades-body"></tbody>
-      </table>
+    <section>
+      <div class="section-header">
+        <h2>Trade History</h2>
+        <div class="section-line"></div>
+      </div>
+      <div id="trades-empty" class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>No trades yet</span>
+      </div>
+      <div class="table-wrap hidden" id="trades-table-wrap">
+        <table id="trades-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Symbol</th>
+              <th>Side</th>
+              <th>Qty</th>
+              <th>Entry</th>
+              <th>Exit</th>
+              <th>Value</th>
+              <th>P&amp;L</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody id="trades-body"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
