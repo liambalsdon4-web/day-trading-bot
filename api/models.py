@@ -25,6 +25,7 @@ class SignalScore(BaseModel):
 
 
 class Position(BaseModel):
+    trade_id: str
     symbol: str
     asset_class: Literal["stock", "crypto"]
     qty: float

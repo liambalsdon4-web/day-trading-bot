@@ -81,6 +81,7 @@ class TradingEngine:
 
         for trade in open_trades:
             position = Position(
+                trade_id=trade.id,
                 symbol=trade.symbol, asset_class=trade.asset_class,
                 qty=trade.qty, entry_price=trade.price, current_price=trade.price,
                 stop_loss_price=risk_manager.calc_stop_loss(trade.price),
@@ -110,9 +111,8 @@ class TradingEngine:
     async def _loop(self) -> None:
         while self.running:
             try:
-                if _is_market_hours() or settings.force_run:
-                    await self._tick()
-                    self.last_tick_at = datetime.now(timezone.utc)
+                await self._tick()
+                self.last_tick_at = datetime.now(timezone.utc)
             except Exception as e:
                 self.errors.append(f"{datetime.now(timezone.utc)}: {e}")
                 self.errors = self.errors[-50:]
@@ -138,7 +138,11 @@ class TradingEngine:
             # Skip stock processing outside market hours
             if asset_class == "stock" and not _is_market_hours():
                 continue
-            await self._process_symbol(symbol, asset_class)
+            try:
+                await self._process_symbol(symbol, asset_class)
+            except Exception as e:
+                self.errors.append(f"{datetime.now(timezone.utc)} [{symbol}]: {e}")
+                self.errors = self.errors[-50:]
 
         self._update_portfolio_value()
         await queries.upsert_portfolio_snapshot(
@@ -191,11 +195,13 @@ class TradingEngine:
 
         order = await broker.place_order(symbol, "BUY", qty, stop_loss=stop, take_profit=tp)
         filled_price = order.get("filled_price", current_price)
+        order_id = order.get("id", str(uuid.uuid4()))
 
         cost = filled_price * qty
         self.portfolio.cash -= cost
 
         position = Position(
+            trade_id=order_id,
             symbol=symbol, asset_class=asset_class, qty=qty,
             entry_price=filled_price, current_price=filled_price,
             stop_loss_price=stop, take_profit_price=tp,
@@ -205,7 +211,7 @@ class TradingEngine:
         self.portfolio.positions.append(position)
 
         trade = Trade(
-            id=order.get("id", str(uuid.uuid4())),
+            id=order_id,
             symbol=symbol, asset_class=asset_class,
             side="BUY", qty=qty, price=filled_price,
             total_value=cost, mode=settings.mode,
@@ -216,8 +222,17 @@ class TradingEngine:
 
     async def _close_position(self, position: Position, current_price: float,
                                reason: str, broker) -> None:
-        order = await broker.close_position(position.symbol, position.qty, current_price)
-        filled_price = order.get("filled_price", current_price)
+        try:
+            order = await broker.close_position(position.symbol, position.qty, current_price)
+            filled_price = order.get("filled_price", current_price)
+        except Exception as e:
+            # Broker doesn't know this position (ghost from DB restore or external close).
+            # Remove it locally and mark the DB record closed so it won't reload.
+            self.portfolio.positions = [p for p in self.portfolio.positions if p.symbol != position.symbol]
+            await queries.close_trade(position.trade_id, current_price, 0.0)
+            self.errors.append(f"{datetime.now(timezone.utc)} [{position.symbol}] removed ghost position: {e}")
+            self.errors = self.errors[-50:]
+            return
 
         realized_pnl = (filled_price - position.entry_price) * position.qty
         self.portfolio.cash += filled_price * position.qty
@@ -229,7 +244,7 @@ class TradingEngine:
 
         # Update the original BUY trade record with exit info
         await queries.close_trade(
-            trade_id=f"{position.symbol}_{position.opened_at.isoformat()}",
+            trade_id=position.trade_id,
             exit_price=filled_price,
             realized_pnl=realized_pnl,
         )

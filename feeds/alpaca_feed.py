@@ -32,10 +32,16 @@ class AlpacaFeed(AbstractFeed):
         for symbol in self._symbols:
             try:
                 await asyncio.to_thread(self._fetch_symbol, symbol)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[feed] failed to fetch {symbol}: {e}")
 
     def _fetch_symbol(self, symbol: str) -> None:
+        if symbol in settings.crypto_symbols:
+            self._fetch_crypto_yfinance(symbol)
+        else:
+            self._fetch_stock_alpaca(symbol)
+
+    def _fetch_stock_alpaca(self, symbol: str) -> None:
         from alpaca.data.requests import StockBarsRequest
         from alpaca.data.timeframe import TimeFrame
         from datetime import datetime, timedelta, timezone
@@ -53,4 +59,18 @@ class AlpacaFeed(AbstractFeed):
         df = df.rename(columns={"timestamp": "datetime"})
         df = normalize_ohlcv(df)
         self._cache[symbol] = df.iloc[-settings.ohlcv_bars:]
+        self._latest_price[symbol] = float(df["close"].iloc[-1])
+
+    def _fetch_crypto_yfinance(self, symbol: str) -> None:
+        import yfinance as yf
+        import pandas as pd
+        df = yf.download(symbol, period="5d", interval="1m", progress=False, auto_adjust=True)
+        if df.empty:
+            return
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        df = normalize_ohlcv(df)
+        if len(df) > settings.ohlcv_bars:
+            df = df.iloc[-settings.ohlcv_bars:]
+        self._cache[symbol] = df
         self._latest_price[symbol] = float(df["close"].iloc[-1])

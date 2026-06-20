@@ -30,16 +30,21 @@ class YFinanceFeed(AbstractFeed):
     async def _refresh_all(self) -> None:
         for symbol in self._symbols:
             try:
-                await asyncio.to_thread(self._fetch_symbol, symbol)
-            except Exception:
+                await asyncio.wait_for(
+                    asyncio.to_thread(self._fetch_symbol, symbol),
+                    timeout=20.0,
+                )
+            except asyncio.TimeoutError:
                 pass
+            except Exception as e:
+                print(f"[feed] failed to fetch {symbol}: {e}")
 
     def _fetch_symbol(self, symbol: str) -> None:
-        # yfinance uses different symbol format for some assets
-        ticker = yf.Ticker(symbol)
-        df = ticker.history(period="5d", interval="1m")
+        df = yf.download(symbol, period="5d", interval="1m", progress=False, auto_adjust=True)
         if df.empty:
             return
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
         df = normalize_ohlcv(df)
         if len(df) > settings.ohlcv_bars:
             df = df.iloc[-settings.ohlcv_bars:]
