@@ -46,6 +46,7 @@ class Settings(BaseSettings):
 
     # ── Regime + signal thresholds ────────────────────────────────────
     adx_trend_threshold: float = 22.0    # ADX >= this ⇒ trending regime (else range/mean-reversion)
+    trend_only_entries: bool = True      # only BUY in a confirmed uptrend regime (cuts range chop)
     buy_threshold: float = 35.0
     sell_threshold: float = -35.0
 

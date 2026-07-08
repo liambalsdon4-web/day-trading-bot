@@ -106,8 +106,15 @@ def score_symbol(symbol: str, ohlcv: pd.DataFrame, asset_class: str) -> SignalSc
     bear = sum(v.weight for v in votes if v.vote == "bearish") / total_w * 100
     net = bull - bear
 
-    # Entry guard: never BUY into a confirmed downtrend.
-    if net >= settings.buy_threshold and not trend_down:
+    # Entry gate. With trend_only_entries, only BUY in a confirmed uptrend regime
+    # (cuts noisy range-bound buys); otherwise just avoid buying into a downtrend.
+    allow_buy = net >= settings.buy_threshold
+    if settings.trend_only_entries:
+        allow_buy = allow_buy and trending and trend_up
+    else:
+        allow_buy = allow_buy and not trend_down
+
+    if allow_buy:
         action = "BUY"
     elif net <= settings.sell_threshold:
         action = "SELL"
