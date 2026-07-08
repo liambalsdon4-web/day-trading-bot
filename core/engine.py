@@ -88,6 +88,7 @@ class TradingEngine:
                 take_profit_price=risk_manager.calc_take_profit(trade.price),
                 unrealized_pnl=0.0, unrealized_pnl_pct=0.0,
                 opened_at=trade.timestamp,
+                highest_price=trade.price, atr_at_entry=0.0,
             )
             self.portfolio.positions.append(position)
 
@@ -173,6 +174,9 @@ class TradingEngine:
             existing.unrealized_pnl = (current_price - existing.entry_price) * existing.qty
             existing.unrealized_pnl_pct = (current_price - existing.entry_price) / existing.entry_price
 
+            # Trail the stop up behind the high (uses the fresh ATR from this tick).
+            risk_manager.update_trailing_stop(existing, current_price, signal.atr)
+
             exit_reason = risk_manager.check_exit(existing, signal, current_price)
             if exit_reason:
                 await self._close_position(existing, current_price, exit_reason, broker)
@@ -186,16 +190,22 @@ class TradingEngine:
         if not can_trade:
             return
 
-        qty = risk_manager.size_position(self.portfolio, current_price)
+        est_stop = risk_manager.calc_stop_loss(current_price, signal.atr)
+        qty = risk_manager.size_position(self.portfolio, current_price, est_stop)
         if qty <= 0 or qty * current_price > self.portfolio.cash:
             return
 
-        stop = risk_manager.calc_stop_loss(current_price)
-        tp = risk_manager.calc_take_profit(current_price)
-
-        order = await broker.place_order(symbol, "BUY", qty, stop_loss=stop, take_profit=tp)
+        order = await broker.place_order(
+            symbol, "BUY", qty,
+            stop_loss=est_stop,
+            take_profit=risk_manager.calc_take_profit(current_price, signal.atr),
+        )
         filled_price = order.get("filled_price", current_price)
         order_id = order.get("id", str(uuid.uuid4()))
+
+        # Anchor the real stop/target to the actual fill price.
+        stop = risk_manager.calc_stop_loss(filled_price, signal.atr)
+        tp = risk_manager.calc_take_profit(filled_price, signal.atr)
 
         cost = filled_price * qty
         self.portfolio.cash -= cost
@@ -207,6 +217,7 @@ class TradingEngine:
             stop_loss_price=stop, take_profit_price=tp,
             unrealized_pnl=0.0, unrealized_pnl_pct=0.0,
             opened_at=datetime.now(timezone.utc),
+            highest_price=filled_price, atr_at_entry=signal.atr,
         )
         self.portfolio.positions.append(position)
 

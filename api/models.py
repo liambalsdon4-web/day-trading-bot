@@ -22,6 +22,7 @@ class SignalScore(BaseModel):
     net_score: float
     action: Literal["BUY", "SELL", "HOLD"]
     confidence: float
+    atr: float = 0.0
 
 
 class Position(BaseModel):
@@ -36,6 +37,8 @@ class Position(BaseModel):
     unrealized_pnl: float
     unrealized_pnl_pct: float
     opened_at: datetime
+    highest_price: float = 0.0
+    atr_at_entry: float = 0.0
 
 
 class Trade(BaseModel):

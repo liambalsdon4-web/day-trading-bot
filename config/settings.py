@@ -32,22 +32,34 @@ class Settings(BaseSettings):
     # ── Risk parameters ───────────────────────────────────────────────
     starting_capital: float = 10_000.0
     max_positions: int = 5
-    risk_per_trade_pct: float = 0.01
-    stop_loss_pct: float = 0.02
-    take_profit_pct: float = 0.02
-    max_position_hours: float = 4.0
-    daily_loss_limit_pct: float = 0.02
+    risk_per_trade_pct: float = 0.0075   # risk 0.75% of equity per trade (via ATR stop)
+    max_notional_pct: float = 0.30       # cap any single position at 30% of equity
+    max_position_hours: float = 6.0
+    daily_loss_limit_pct: float = 0.03
 
-    # ── Signal thresholds ─────────────────────────────────────────────
-    buy_threshold: float = 40.0
-    sell_threshold: float = -40.0
+    # ── ATR-based stops / targets / trailing ──────────────────────────
+    atr_period: int = 14
+    atr_stop_mult: float = 1.5           # stop  = entry - 1.5 * ATR
+    atr_target_mult: float = 3.0         # target = entry + 3.0 * ATR  (≈2:1 reward:risk)
+    atr_trail_mult: float = 2.0          # trail stop this many ATRs behind the high (once in profit)
+    fallback_stop_pct: float = 0.02      # used only when ATR is unavailable (e.g. on restart)
+
+    # ── Regime + signal thresholds ────────────────────────────────────
+    adx_trend_threshold: float = 22.0    # ADX >= this ⇒ trending regime (else range/mean-reversion)
+    buy_threshold: float = 35.0
+    sell_threshold: float = -35.0
+
+    # ── Execution costs (paper realism) ───────────────────────────────
+    slippage_bps: float = 5.0            # 5 bps slippage each side
+    fee_bps: float = 2.0                 # 2 bps fee each side
 
     # ── Data ──────────────────────────────────────────────────────────
     db_path: str = "./data/trading.db"
-    ohlcv_bars: int = 100
+    ohlcv_bars: int = 200                # more history for EMA50 / ADX context
     port: int = 8000
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    # extra="ignore" so retired/unknown keys in .env (e.g. STOP_LOSS_PCT) don't crash startup
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()
