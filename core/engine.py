@@ -238,9 +238,13 @@ class TradingEngine:
             filled_price = order.get("filled_price", current_price)
         except Exception as e:
             # Broker doesn't know this position (ghost from DB restore or external close).
-            # Remove it locally and mark the DB record closed so it won't reload.
+            # Mark it out at the current price and RETURN its value to cash, so local
+            # accounting stays balanced. Previously this dropped the position's value
+            # without crediting cash — a silent leak that showed up as phantom losses.
+            realized_pnl = (current_price - position.entry_price) * position.qty
+            self.portfolio.cash += current_price * position.qty
             self.portfolio.positions = [p for p in self.portfolio.positions if p.symbol != position.symbol]
-            await queries.close_trade(position.trade_id, current_price, 0.0)
+            await queries.close_trade(position.trade_id, current_price, realized_pnl)
             self.errors.append(f"{datetime.now(timezone.utc)} [{position.symbol}] removed ghost position: {e}")
             self.errors = self.errors[-50:]
             return

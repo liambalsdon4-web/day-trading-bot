@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     db_path: str = "./data/trading.db"
     ohlcv_bars: int = 200                # more history for EMA50 / ADX context
     port: int = 8000
+    open_browser: bool = True            # auto-open the dashboard when the bot starts
 
     # extra="ignore" so retired/unknown keys in .env (e.g. STOP_LOSS_PCT) don't crash startup
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}

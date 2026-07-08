@@ -39,6 +39,26 @@ def _build_crypto_broker(price_cache: dict):
     return PaperBroker(price_cache)
 
 
+def _open_dashboard_when_ready():
+    """Open the dashboard in the default browser shortly after startup.
+
+    Runs in a daemon thread so a browser-less/headless run is unaffected; if the
+    server fails to bind (e.g. port in use), the process exits and this never fires.
+    """
+    if not settings.open_browser:
+        return
+    import threading, time, webbrowser
+
+    def _open():
+        time.sleep(2)  # give uvicorn a moment to start accepting connections
+        try:
+            webbrowser.open(f"http://localhost:{settings.port}")
+        except Exception:
+            pass
+
+    threading.Thread(target=_open, daemon=True).start()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
@@ -58,6 +78,8 @@ async def lifespan(app: FastAPI):
     await asyncio.sleep(5)
     await engine.restore_state()
     await engine.start()
+
+    _open_dashboard_when_ready()
 
     yield
 
